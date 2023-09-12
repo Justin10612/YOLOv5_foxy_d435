@@ -4,7 +4,7 @@ package_name = 'detection'
 
 setup(
     name=package_name,
-    version='0.0.0',
+    version='0.1.0',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer='sss0301',
     maintainer_email='atom.9031@gmail.com',
-    description='TODO: Package description',
+    description='The package with YOLOv5 and hook up with d435',
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
