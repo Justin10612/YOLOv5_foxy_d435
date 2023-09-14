@@ -2,7 +2,7 @@ import pyrealsense2 as rs
 import numpy as np
 import cv2
 import torch
-import time
+import os
 
 import rclpy
 from rclpy.node import Node
@@ -18,21 +18,20 @@ class yolov5_ros(Node):
         self.model.conf = 0.5
         
     def dectshow(self, org_img, boxs, depth_data):
-        detection_pos = []
         def clamp(n, smallest, largest):
             return max(smallest, min(n, largest))
         # The func that can lat U know the distance
         def get_mid_pos(box, depth_data):
             distance_list = []
-            depth_heigh = 200
+            depth_heigh = 250
             bias = 10
             target_x = int(clamp((box[0] + box[2])//2, 0, 1280))    # The center-x of the bounding box
             # Get the smaple point
-            for i in range(3):
+            for i in range(5):
                 target_y = int(clamp(depth_heigh+bias, 0, 720))
-                cv2.circle(org_img, (int(target_x), int(target_y)), 8, (255,255,255), 2)
+                cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), 2)
                 distance_list.append(depth_data[target_y, target_x])
-                bias +=5
+                bias +=30
                 # self.get_logger().info('Human.angle "%f"' % (target_y))
             # Let you know where the smaple point is.
             # cv2.circle(org_img, (int(target_x), int(depth_heigh)), 8, (255,255,255), 2)
@@ -43,17 +42,17 @@ class yolov5_ros(Node):
             # Drawing the Bounding Box
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Calculate the Distance
-            pos = get_mid_pos(box, depth_data)
+            distance = get_mid_pos(box, depth_data)
             # THIS CAN ONLY DEAL WITH SINGLE OBJET
             # Show Name and Distance
-            cv2.putText(org_img, "Target" + str(float(pos) / 1000)[:4] + 'm',
-                        (int(box[0]), int(box[3])), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 1)
+            cv2.putText(org_img, "Target" + str(float(distance) / 1000)[:4] + 'm',
+                        (int(box[0]), int(box[3])), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1)
             # Publish Data
-            # msg = Vector3()
-            # msg.x = pos[0]   # x
-            # msg.y = pos[1]   # depth
-            # self.publisher_.publish(msg)
-            # self.get_logger().info('Human.angle "%f", Human.depth "%f"' % (msg.x, msg.y))
+            msg = Vector3()
+            msg.x = (box[0] + box[2])//2  # x
+            msg.y = distance              # depth
+            self.publisher_.publish(msg)
+            self.get_logger().info('Human.angle "%.2f", Human.depth "%.2f"' % (msg.x, msg.y))
         cv2.imshow('dec_img', org_img)
     
     def run_detection(self):
@@ -81,7 +80,7 @@ class yolov5_ros(Node):
                 results = self.model(color_image)
                 boxs= results.pandas().xyxy[0].values
                 # Main detection
-                human_pos = self.dectshow(color_image, boxs, depth_image)
+                self.dectshow(color_image, boxs, depth_image)
 
                 # # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
                 # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
