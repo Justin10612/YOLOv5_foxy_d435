@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import random
 import pyrealsense2 as rs
 
 # 设置保存图像的文件夹路径
@@ -33,7 +34,7 @@ while True:
 
         # 保存图像
         if frame_count % frame_interval == 0:
-            image_filename = f"{output_folder}frame_{frame_count}.jpg"
+            image_filename = f"{output_folder}frame_{random.randint(1,10000)}.jpg"
             cv2.imwrite(image_filename, cv_image)
             print(f"Saved {image_filename}")
             picture_num += 1

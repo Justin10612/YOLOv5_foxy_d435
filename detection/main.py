@@ -14,7 +14,7 @@ class yolov5_ros(Node):
         super().__init__('human_detector')
         self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
         # Select Model
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/sss0301/ros2_ws/src/detection/models/bestv8.pt', force_reload=True)
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/sss0301/ros2_ws/src/detection/models/1068.pt', force_reload=True)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         self.model.conf = 0.5
         
@@ -33,7 +33,6 @@ class yolov5_ros(Node):
                 cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), 2)
                 distance_list.append(depth_data[target_y, target_x])
                 bias +=30
-                # self.get_logger().info('Human.angle "%f"' % (target_y))
             # Let you know where the smaple point is.
             # cv2.circle(org_img, (int(target_x), int(depth_heigh)), 8, (255,255,255), 2)
             return np.mean(distance_list)
@@ -44,6 +43,11 @@ class yolov5_ros(Node):
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Calculate the Distance
             distance = get_mid_pos(box, depth_data)
+            cv2.putText(org_img, 
+                        str(float(box[4]))[:4],
+                        (107, 77), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 
+                        1, (255, 255, 255), 2)
             # THIS CAN ONLY DEAL WITH SINGLE OBJET
             # Show Name and Distance
             cv2.putText(org_img, 
