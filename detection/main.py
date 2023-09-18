@@ -13,6 +13,7 @@ class yolov5_ros(Node):
     def __init__(self):
         super().__init__('human_detector')
         self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
+        # Select Model
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/sss0301/ros2_ws/src/detection/models/bestv8.pt', force_reload=True)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         self.model.conf = 0.5
@@ -45,8 +46,11 @@ class yolov5_ros(Node):
             distance = get_mid_pos(box, depth_data)
             # THIS CAN ONLY DEAL WITH SINGLE OBJET
             # Show Name and Distance
-            cv2.putText(org_img, "Target" + str(float(distance) / 1000)[:4] + 'm',
-                        (int(box[0]), int(box[3])), cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 255, 255), 1)
+            cv2.putText(org_img, 
+                        "Target" + str(float(distance) / 1000)[:4] + 'm',
+                        (int(box[0]), int(box[3])), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 
+                        2, (255, 255, 255), 1)
             # Publish Data
             msg = Vector3()
             msg.x = (box[0] + box[2])//2  # x
