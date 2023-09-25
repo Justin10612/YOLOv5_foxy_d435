@@ -11,13 +11,17 @@ from geometry_msgs.msg import Vector3
 class yolov5_ros(Node):
 
     def __init__(self):
+        # initial
+        model_name = '2041.pt'
+        model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
+        path_ = model_path + model_name
         super().__init__('human_detector')
         self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
         # Select Model
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/sss0301/ros2_ws/src/detection/models/1068.pt', force_reload=True)
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_, force_reload=True)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-        self.model.conf = 0.5
-        
+        self.model.conf = 0.1
+    
     def dectshow(self, org_img, boxs, depth_data):
         def clamp(n, smallest, largest):
             return max(smallest, min(n, largest))
@@ -89,14 +93,6 @@ class yolov5_ros(Node):
                 boxs= results.pandas().xyxy[0].values
                 # Main detection
                 self.dectshow(color_image, boxs, depth_image)
-
-                # # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-                # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-                # # Stack both images horizontally
-                # images = np.hstack((color_image, depth_colormap))
-                # # Show images
-                # cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-                # cv2.imshow('RealSense', images)
 
                 # Press esc or 'q' to close the image window
                 key = cv2.waitKey(1)
