@@ -8,7 +8,7 @@ output_folder = 'image_saves/'
 
 # 初始化计数器和帧间隔
 frame_count = 0
-frame_interval = 30  # 每隔10帧保存一次图像
+frame_interval = 15  # 每隔30帧保存一次图像
 picture_num = 0
 
 # 初始化RealSense相机

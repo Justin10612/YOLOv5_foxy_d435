@@ -11,16 +11,17 @@ from geometry_msgs.msg import Vector3
 class yolov5_ros(Node):
 
     def __init__(self):
-        # initial
-        model_name = '2041.pt'
-        model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
-        path_ = model_path + model_name
+        ################## Publisher Initialize ################
         super().__init__('human_detector')
         self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
+        ################## YOLO Model Setting ##################
+        model_name = 'best_y_v19.pt'
+        model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
+        path_ = model_path + model_name
         # Select Model
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_, force_reload=True)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-        self.model.conf = 0.1
+        self.model.conf = 0.5
     
     def dectshow(self, org_img, boxs, depth_data):
         def clamp(n, smallest, largest):
