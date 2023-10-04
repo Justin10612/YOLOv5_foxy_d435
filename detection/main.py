@@ -15,11 +15,11 @@ class yolov5_ros(Node):
         super().__init__('human_detector')
         self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
         ################## YOLO Model Setting ##################
-        model_name = 'best_y_v19.pt'
+        model_name = 'best_c_v5.2.pt'
         model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
         path_ = model_path + model_name
         # Select Model
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_, force_reload=True)
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         self.model.conf = 0.5
     
