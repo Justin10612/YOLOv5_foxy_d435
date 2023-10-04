@@ -24,9 +24,11 @@ class yolov5_ros(Node):
         self.model.conf = 0.5
     
     def dectshow(self, org_img, boxs, depth_data):
+        msg = Vector3()
+        # Clamp function
         def clamp(n, smallest, largest):
             return max(smallest, min(n, largest))
-        # The func that can lat U know the distance
+        # The func that can let U know the distance
         def get_mid_pos(box, depth_data):
             distance_list = []
             depth_heigh = 250
@@ -35,13 +37,18 @@ class yolov5_ros(Node):
             # Get the smaple point
             for i in range(5):
                 target_y = int(clamp(depth_heigh+bias, 0, 720))
+                # Let you know where the smaple point is.
                 cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), 2)
                 distance_list.append(depth_data[target_y, target_x])
                 bias +=30
-            # Let you know where the smaple point is.
-            # cv2.circle(org_img, (int(target_x), int(depth_heigh)), 8, (255,255,255), 2)
             return np.mean(distance_list)
         
+        if len(boxs)==0:
+            msg.x = 0.0  # x
+            msg.y = 0.0  # depth
+            self.publisher_.publish(msg)
+            self.get_logger().info('Target Lost')
+
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Drawing the Bounding Box
@@ -52,20 +59,19 @@ class yolov5_ros(Node):
                         str(float(box[4]))[:4],
                         (107, 77), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
-                        1, (255, 255, 255), 2)
+                        1.5, (3, 255, 65), 2)
             # THIS CAN ONLY DEAL WITH SINGLE OBJET
             # Show Name and Distance
             cv2.putText(org_img, 
-                        "Target" + str(float(distance) / 1000)[:4] + 'm',
+                        "Vest " + str(float(distance) / 1000)[:4] + 'm',
                         (int(box[0]), int(box[3])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
-                        2, (255, 255, 255), 1)
-            # Publish Data
-            msg = Vector3()
+                        1.5, (255, 255, 255), 2)
+            ################ Publish Data ###############
             msg.x = (box[0] + box[2])//2  # x
             msg.y = distance              # depth
             self.publisher_.publish(msg)
-            self.get_logger().info('Human.angle "%.2f", Human.depth "%.2f"' % (msg.x, msg.y))
+            self.get_logger().info('Locked on target')
         cv2.imshow('dec_img', org_img)
     
     def run_detection(self):
