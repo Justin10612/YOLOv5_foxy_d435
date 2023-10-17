@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import torch
 import os
+import random
 
 import rclpy
 from rclpy.node import Node
@@ -11,40 +12,65 @@ from std_msgs.msg import Bool
 
 class yolov5_ros(Node):
 
+
+    count = 0
+    d_list = []
+    distance = 0
+
     def __init__(self):
-        ################## Publisher Initialize ################
+        # Node Initialize
         super().__init__('human_detector')
+        # Publisher Initialize
         self.publisher_ = self.create_publisher(Vector3, 'human_pose', 10)
         self.target_status_pub_ = self.create_publisher(Bool, 'target_status', 10)
-        ################## YOLO Model Setting ##################
-        model_name = 'best_c_v5.2.pt'
-        model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
-        path_ = model_path + model_name
         # Select Model
+        model_name = 'best_c_v8.pt'
+        model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
+        # path_ = os.path.join(self.model_name, self.model_path)
+        path_ = model_path + model_name 
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+        # Set Confidence
         self.model.conf = 0.5
+    
+# Clamp function
+    def clamp(self, n, smallest, largest):
+        return max(smallest, min(n, largest))
+
+    # The func that can let U know the distance
+    def get_mid_pos_A(self, org_img, box, depth_data):
+        distance_list = []
+        depth_heigh = 250
+        bias = 10
+        target_x = int(self.clamp((box[0] + box[2])//2, 0, 1280))    # The center-x of the bounding box
+        # Get the smaple point
+        for i in range(20):
+            target_y = int(self.clamp(depth_heigh+bias, 0, 720))
+            # Let you know where the smaple point is.
+            cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), -1)
+            distance_list.append(depth_data[target_y, target_x])
+            bias +=10
+        return np.mean(distance_list)
     
     def dectshow(self, org_img, boxs, depth_data):
         pose_msg = Vector3()
         status_msg = Bool()
-        # Clamp function
-        def clamp(n, smallest, largest):
-            return max(smallest, min(n, largest))
+
         # The func that can let U know the distance
-        def get_mid_pos(box, depth_data):
-            distance_list = []
-            depth_heigh = 250
-            bias = 10
-            target_x = int(clamp((box[0] + box[2])//2, 0, 1280))    # The center-x of the bounding box
-            # Get the smaple point
-            for i in range(5):
-                target_y = int(clamp(depth_heigh+bias, 0, 720))
-                # Let you know where the smaple point is.
-                cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), 2)
-                distance_list.append(depth_data[target_y, target_x])
-                bias +=30
-            return np.mean(distance_list)
+        # def get_mid_pos_B(box, depth_data):
+        #     distance_list = []
+        #     depth_heigh = 250
+        #     bias = 10
+        #     target_x = int(clamp((box[0] + box[2])//2, 0, 1280))    # The center-x of the bounding box
+        #     target_y = int(clamp(depth_heigh), 0, 720)
+        #     # Get the smaple point
+        #     for i in range(5):
+        #         # Let you know where the smaple point is.
+        #         distance_list.append(depth_data[
+        #             random.randint(target_y-bias, target_y+bias), 
+        #             random.randint(target_x-bias, target_x+bias)])
+        #         cv2.circle(org_img, (target_x, target_y), 8, (255,255,255), 2)
+        #     return np.mean(distance_list)
         
         if len(boxs)==0:
             # Publish Target Pose
@@ -55,13 +81,19 @@ class yolov5_ros(Node):
             status_msg.data = False
             self.target_status_pub_.publish(status_msg)
             self.get_logger().info('Target Lost')
-
+        
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Drawing the Bounding Box
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Calculate the Distance
-            distance = get_mid_pos(box, depth_data)
+
+            for i in range(4):
+                self.d_list.append(self.get_mid_pos_A(org_img, box, depth_data))
+            self.d_list.sort()
+            self.distance = self.d_list[2]
+            # self.get_logger.info('Dis %f' % self.distance)
+            self.d_list = []
             cv2.putText(org_img, 
                         str(float(box[4]))[:4],
                         (107, 77), 
@@ -70,14 +102,14 @@ class yolov5_ros(Node):
             # THIS CAN ONLY DEAL WITH SINGLE OBJET
             # Show Name and Distance
             cv2.putText(org_img, 
-                        "Vest " + str(float(distance) / 1000)[:4] + 'm',
+                        "Vest " + str(float(self.distance) / 1000)[:4] + 'm',
                         (int(box[0]), int(box[3])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (255, 255, 255), 2)
             ################ Publish Data ################
             # Publish Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
-            pose_msg.y = distance              # depth
+            pose_msg.y = float(self.distance)/10              # depth
             self.publisher_.publish(pose_msg)
             # Publish Target Status
             status_msg.data = True
@@ -111,6 +143,12 @@ class yolov5_ros(Node):
                 boxs= results.pandas().xyxy[0].values
                 # Main detection
                 self.dectshow(color_image, boxs, depth_image)
+
+                # # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+                # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=1), cv2.COLORMAP_JET)
+                # # Show images
+                # cv2.namedWindow('Depth', cv2.WINDOW_AUTOSIZE)
+                # cv2.imshow('Depth', depth_colormap)
 
                 # Press esc or 'q' to close the image window
                 key = cv2.waitKey(1)
