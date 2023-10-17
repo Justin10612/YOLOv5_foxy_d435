@@ -7,13 +7,15 @@ import os
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Vector3
+from std_msgs.msg import Bool
 
 class yolov5_ros(Node):
 
     def __init__(self):
         ################## Publisher Initialize ################
         super().__init__('human_detector')
-        self.publisher_ = self.create_publisher(Vector3, 'human_pos', 10)
+        self.publisher_ = self.create_publisher(Vector3, 'human_pose', 10)
+        self.target_status_pub_ = self.create_publisher(Bool, 'target_status', 10)
         ################## YOLO Model Setting ##################
         model_name = 'best_c_v5.2.pt'
         model_path = '/home/sss0301/ros2_ws/src/detection/weights/'
@@ -24,7 +26,8 @@ class yolov5_ros(Node):
         self.model.conf = 0.5
     
     def dectshow(self, org_img, boxs, depth_data):
-        msg = Vector3()
+        pose_msg = Vector3()
+        status_msg = Bool()
         # Clamp function
         def clamp(n, smallest, largest):
             return max(smallest, min(n, largest))
@@ -44,9 +47,13 @@ class yolov5_ros(Node):
             return np.mean(distance_list)
         
         if len(boxs)==0:
-            msg.x = 0.0  # x
-            msg.y = 0.0  # depth
-            self.publisher_.publish(msg)
+            # Publish Target Pose
+            pose_msg.x = 0.0  # x
+            pose_msg.y = 0.0  # depth
+            self.publisher_.publish(pose_msg)
+            # Publish Target Status
+            status_msg.data = False
+            self.target_status_pub_.publish(status_msg)
             self.get_logger().info('Target Lost')
 
         # Gvie Every Box Distance_Value
@@ -67,10 +74,14 @@ class yolov5_ros(Node):
                         (int(box[0]), int(box[3])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (255, 255, 255), 2)
-            ################ Publish Data ###############
-            msg.x = (box[0] + box[2])//2  # x
-            msg.y = distance              # depth
-            self.publisher_.publish(msg)
+            ################ Publish Data ################
+            # Publish Target Pose
+            pose_msg.x = (box[0] + box[2])//2  # x
+            pose_msg.y = distance              # depth
+            self.publisher_.publish(pose_msg)
+            # Publish Target Status
+            status_msg.data = True
+            self.target_status_pub_.publish(status_msg)
             self.get_logger().info('Locked on target')
         cv2.imshow('dec_img', org_img)
     
