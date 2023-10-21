@@ -4,6 +4,7 @@ import cv2
 import torch
 import os
 import random
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -37,44 +38,42 @@ class yolov5_ros(Node):
             # Publish Target Pose
             pose_msg.x = 0.0  # x
             pose_msg.y = 0.0  # depth
-            self.publisher_.publish(pose_msg)
-            # Publish Target Status
+            # Update Target Status
             status_msg.data = False
-            self.target_status_pub_.publish(status_msg)
             # Log Data
-            self.get_logger().info('Target Lost')
+            # self.get_logger().info('Target Lost')
         # Gvie Every Box Distance_Value
-        # THIS CAN ONLY DEAL WITH SINGLE OBJET
         for box in boxs:
             # Drawing the Bounding Box
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Midan Filter
-            for i in range(3):
+            for i in range(5):
                 self.d_list.append(self.get_distance_x_type(org_img, box, depth_data))
             self.d_list.sort()
-            self.distance = self.d_list[1]
+            self.distance = self.d_list[2]
             # self.get_logger().info('Dis %f' % self.distance)
             self.d_list = []
             # Show Name and Distance
             cv2.putText(org_img, 
-                        str(float(box[4]))[:4],
+                        str(box[4])[:4],
                         (107, 77), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (3, 255, 65), 2)
             cv2.putText(org_img, 
-                        "Vest " + str(float(self.distance) / 1000)[:4] + 'm',
+                        "Vest " + str((self.distance) / 1000)[:4] + 'm',
                         (int(box[0]), int(box[3])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (3, 255, 65), 2)
-            # Publish Target Pose
+            # Update Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
-            pose_msg.y = float(self.distance)/10 # depth
-            self.publisher_.publish(pose_msg)
-            # Publish Target Status
+            pose_msg.y = (self.distance)/10.0  # depth
+            # Update Target Status
             status_msg.data = True
-            self.target_status_pub_.publish(status_msg)
             # Log Data
-            self.get_logger().info('Locked on target')
+            # self.get_logger().info('Locked on target')
+        # Publish Target Pose
+        self.publisher_.publish(pose_msg)
+        self.target_status_pub_.publish(status_msg)
         # Show Image
         cv2.imshow('dec_img', org_img)
 
@@ -127,6 +126,8 @@ class yolov5_ros(Node):
         pipeline.start(config)
         try:
             while True:
+                start_time = time.time()
+                # start_time = time.time()
                 # Wait for a coherent pair of frames: depth and color
                 frames = pipeline.wait_for_frames()
                 depth_frame = frames.get_depth_frame()
@@ -146,15 +147,19 @@ class yolov5_ros(Node):
                 self.dectshow(color_image, boxs, depth_image)
 
                 # Show Depth Image
-                colorizer = rs.colorizer()
-                colorizer_depth = np.asanyarray(colorizer.colorize(filled_depth_frame).get_data())
-                cv2.imshow('Depth_image', colorizer_depth)
+                # colorizer = rs.colorizer()
+                # colorizer_depth = np.asanyarray(colorizer.colorize(filled_depth_frame).get_data())
+                # cv2.imshow('Depth_image', colorizer_depth)
 
                 # Press esc or 'q' to close the image window
                 key = cv2.waitKey(1)
                 if key & 0xFF == ord('q') or key == 27:
                     cv2.destroyAllWindows()
                     break
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                fps = 1/elapsed_time
+                self.get_logger().info('FPS: %.2f' % fps)
         finally:
             # Stop streaming
             pipeline.stop()
