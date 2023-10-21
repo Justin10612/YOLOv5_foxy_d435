@@ -27,7 +27,6 @@ class yolov5_ros(Node):
         # Select Model
         path_ = os.path.join(self.MODEL_PATH, self.MODEL_NAME)
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
-        # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         # Set Confidence
         self.model.conf = 0.5
 
@@ -41,17 +40,22 @@ class yolov5_ros(Node):
             # Update Target Status
             status_msg.data = False
             # Log Data
-            # self.get_logger().info('Target Lost')
+            self.get_logger().info('Target Lost')
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Drawing the Bounding Box
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Midan Filter
             for i in range(5):
-                self.d_list.append(self.get_distance_x_type(org_img, box, depth_data))
-            self.d_list.sort()
-            self.distance = self.d_list[2]
-            # self.get_logger().info('Dis %f' % self.distance)
+                midan = 0
+                for i in range(5):
+                    self.d_list.append(self.get_distance_x_type(org_img, box, depth_data))
+                self.d_list.sort()
+                midan = self.d_list[2]
+                # self.get_logger().info('Dis %f' % self.distance)
+                self.d_list.append(midan)
+            # Get average distance in meters
+            self.distance = (np.mean(self.d_list))/1000.0 
             self.d_list = []
             # Show Name and Distance
             cv2.putText(org_img, 
@@ -60,22 +64,23 @@ class yolov5_ros(Node):
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (3, 255, 65), 2)
             cv2.putText(org_img, 
-                        "Vest " + str((self.distance) / 1000)[:4] + 'm',
+                        "Vest " + str(self.distance)[:4] + 'm',
                         (int(box[0]), int(box[3])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 
                         1.5, (3, 255, 65), 2)
             # Update Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
-            pose_msg.y = (self.distance)/10.0  # depth
+            pose_msg.y = round(self.distance, 3)  # depth meters
             # Update Target Status
             status_msg.data = True
             # Log Data
-            # self.get_logger().info('Locked on target')
+            self.get_logger().info('Locked on target')
+        
         # Publish Target Pose
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
         # Show Image
-        cv2.imshow('dec_img', org_img)
+        # cv2.imshow('dec_img', org_img)
 
     # Clamp function
     def clamp(self, n, smallest, largest):
@@ -83,21 +88,29 @@ class yolov5_ros(Node):
 
     # The func that can let U know the distance
     def get_distance_x_type(self, org_img, box, depth_data):
-        distance_list = []
-        depth_heigh = self.clamp((box[1] + box[3])//2, 0, 719)
+        x0 = int(box[0])
+        y0 = int(box[1])
+        x1 = int(box[2])
+        y1 = int(box[3])
         bias = 10
+        distance_list = []
         # The center-x of the bounding box
-        target_x = self.clamp((box[0] + box[2])//2, 0, 1279)   
+        target_x = (x0 + x1)//2
+        # The center-y of the bounding box
+        target_y = (y0 + y1)//2
         # Get the smaple point
         for i in range(20):
-            target_y = int(self.clamp(depth_heigh+bias, 0, 720))
+            y_plus = min(target_y+bias, y1-1)
+            y_minus = max(target_y-bias, y0+1)
             # Let you know where the smaple point is.
-            cv2.circle(org_img, (target_x, target_y), 2, (255,255,255), -1)
-            distance_list.append(depth_data[target_y, target_x])
+            # cv2.circle(org_img, (target_x, y_plus), 2, (255,255,255), -1)
+            distance_list.append(depth_data[y_plus, target_x])
+            distance_list.append(depth_data[y_minus, target_x])
+            # cv2.circle(org_img, (target_x, y_minus), 2, (255,255,255), -1)
             bias +=10
         return np.mean(distance_list)
     
-    # # The func that can let U know the distance
+    # The func that can let U know the distance
     # def get_distance_box_type(self, org_img, box, depth_data):
     #     distance_list = []
     #     bias_x = 20
@@ -156,10 +169,10 @@ class yolov5_ros(Node):
                 if key & 0xFF == ord('q') or key == 27:
                     cv2.destroyAllWindows()
                     break
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                fps = 1/elapsed_time
-                self.get_logger().info('FPS: %.2f' % fps)
+                # end_time = time.time()
+                # elapsed_time = end_time - start_time
+                # fps = 1/elapsed_time
+                # self.get_logger().info('FPS: %.2f' % fps)
         finally:
             # Stop streaming
             pipeline.stop()
