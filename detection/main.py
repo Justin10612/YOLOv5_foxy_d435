@@ -15,6 +15,7 @@ class yolov5_ros(Node):
 
     d_list = []
     distance = 0
+    target_state = True
     MODEL_NAME= 'best_c_v8.pt'
     MODEL_PATH = '/home/sss0301/ros2_ws/src/detection/weights'
 
@@ -39,23 +40,19 @@ class yolov5_ros(Node):
             pose_msg.y = 0.0  # depth
             # Update Target Status
             status_msg.data = False
-            # Log Data
-            self.get_logger().info('Target Lost')
+            
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Drawing the Bounding Box
             cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Midan Filter
             for i in range(5):
-                midan = 0
-                for i in range(5):
-                    self.d_list.append(self.get_distance_x_type(org_img, box, depth_data))
-                self.d_list.sort()
-                midan = self.d_list[2]
-                # self.get_logger().info('Dis %f' % self.distance)
-                self.d_list.append(midan)
+                self.d_list.append(self.get_distance_x_type(org_img, box, depth_data))
+            self.d_list.sort()
+            midan = self.d_list[2]
+            # self.get_logger().info('Dis %f' % self.distance)
             # Get average distance in meters
-            self.distance = (np.mean(self.d_list))/1000.0 
+            self.distance = (midan)/1000.0 
             self.d_list = []
             # Show Name and Distance
             cv2.putText(org_img, 
@@ -73,14 +70,19 @@ class yolov5_ros(Node):
             pose_msg.y = round(self.distance, 3)  # depth meters
             # Update Target Status
             status_msg.data = True
-            # Log Data
-            self.get_logger().info('Locked on target')
-        
+            
+        # Log Data
+        if status_msg.data != self.target_state:
+            if status_msg.data:
+                self.get_logger().info('Locked on target')
+            else:
+                self.get_logger().info('Target Lost')
+        self.target_state  = status_msg.data
         # Publish Target Pose
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
         # Show Image
-        # cv2.imshow('dec_img', org_img)
+        cv2.imshow('dec_img', org_img)
 
     # Clamp function
     def clamp(self, n, smallest, largest):
@@ -139,7 +141,6 @@ class yolov5_ros(Node):
         pipeline.start(config)
         try:
             while True:
-                start_time = time.time()
                 # start_time = time.time()
                 # Wait for a coherent pair of frames: depth and color
                 frames = pipeline.wait_for_frames()
@@ -147,7 +148,6 @@ class yolov5_ros(Node):
                 color_frame = frames.get_color_frame()
                 if not depth_frame or not color_frame:
                     continue
-                
                 # Convert images to numpy arrays
                 filled_depth_frame = rs.hole_filling_filter().process(depth_frame)
                 depth_image = np.asanyarray(filled_depth_frame.get_data())
@@ -155,7 +155,6 @@ class yolov5_ros(Node):
                 # Detect Result
                 results = self.model(color_image)
                 boxs= results.pandas().xyxy[0].values
-
                 # Main detection
                 self.dectshow(color_image, boxs, depth_image)
 
