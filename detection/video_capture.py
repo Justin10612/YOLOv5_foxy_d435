@@ -38,8 +38,8 @@ while True:
             cv2.imwrite(image_filename, cv_image)
             print(f"Saved {image_filename}")
             picture_num += 1
-
-        cv2.putText(cv_image, str(picture_num), (107, 77), cv2.FONT_HERSHEY_SIMPLEX, 2, (100, 125, 255), 2)
+        # BGR
+        cv2.putText(cv_image, str(picture_num), (107, 77), cv2.FONT_HERSHEY_SIMPLEX, 2, (252, 10, 100), 3)
         # 在这里，cv_image 是一个OpenCV的Mat对象，您可以对其进行进一步的处理或保存
         cv2.imshow("RealSense Image", cv_image)
 
