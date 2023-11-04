@@ -16,7 +16,7 @@ class yolov5_ros(Node):
     d_list = []
     distance = 0
     target_state = True
-    MODEL_NAME= 'best_c_v8.pt'
+    MODEL_NAME= 'best_c_v10.pt'
     MODEL_PATH = '/home/sss0301/ros2_ws/src/detection/weights'
 
     def __init__(self):
@@ -38,6 +38,7 @@ class yolov5_ros(Node):
             # Publish Target Pose
             pose_msg.x = 0.0  # x
             pose_msg.y = 0.0  # depth
+            pose_msg.z = 0.0
             # Update Target Status
             status_msg.data = False
             
@@ -68,6 +69,7 @@ class yolov5_ros(Node):
             # Update Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
             pose_msg.y = round(self.distance, 3)  # depth meters
+            pose_msg.z = 1.0    # Target Status
             # Update Target Status
             status_msg.data = True
             
