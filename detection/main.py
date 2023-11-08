@@ -16,7 +16,7 @@ class yolov5_ros(Node):
     d_list = []
     distance = 0
     target_state = True
-    MODEL_NAME= 'best_c_v10.pt'
+    MODEL_NAME= 'best_c_v11.pt'
     MODEL_PATH = '/home/sss0301/ros2_ws/src/detection/weights'
 
     def __init__(self):
@@ -84,7 +84,7 @@ class yolov5_ros(Node):
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
         # Show Image
-        cv2.imshow('dec_img', org_img)
+        # cv2.imshow('dec_img', org_img)
 
     # Clamp function
     def clamp(self, n, smallest, largest):
