@@ -12,10 +12,11 @@ from geometry_msgs.msg import Vector3
 from std_msgs.msg import Bool
 
 class yolov5_ros(Node):
-
+    # Variable
     d_list = []
     distance = 0
     target_state = True
+    # Model Info
     MODEL_NAME= 'best_c_v11.pt'
     MODEL_PATH = '/home/sss0301/ros2_ws/src/detection/weights'
 

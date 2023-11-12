@@ -44,15 +44,12 @@ class yolov5_ros(Node):
             
         # Gvie Every Box Distance_Value
         for box in boxs:
-            # Drawing the Bounding Box
-            cv2.rectangle(org_img, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
             # Midan Filter
             for i in range(5):
                 self.d_list.append(self.get_distance_x_type(box, depth_data))
             self.d_list.sort()
             midan = self.d_list[2]
-            # Get average distance in meters
-            self.distance = (midan)/1000.0 
+            self.distance = (midan)/1000.0  # Get average distance in meters
             self.d_list = []
             # Update Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
@@ -68,7 +65,7 @@ class yolov5_ros(Node):
             else:
                 self.get_logger().info('Target Lost')
         self.target_state  = status_msg.data
-        
+
         # Publish Target Pose
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
