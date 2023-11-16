@@ -23,7 +23,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'yolov5_ros = '+package_name+'.main:detect_main',
+            'yolov5_ros_alpha = detection.detetion_imshow:detect_main',
+            'yolov5_ros_beta = detection.detetion_noshow:detect_main',
         ],
     },
 )

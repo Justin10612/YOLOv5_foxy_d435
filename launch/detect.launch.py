@@ -5,10 +5,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
-    yolox_ros_share_dir = get_package_share_directory('detection')
-
     yolov5_ros = launch_ros.actions.Node(
-        package="detection", executable="yolov5_ros",
+        package="detection", executable="yolov5_ros_beta",
     )
 
     return launch.LaunchDescription([
