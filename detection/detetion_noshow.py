@@ -31,7 +31,7 @@ class yolov5_ros(Node):
         # Set Confidence
         self.model.conf = 0.5
 
-    def dectshow(self, org_img, boxs, depth_data):
+    def dectshow(self, boxs, depth_data):
         pose_msg = Vector3()
         status_msg = Bool()
         if len(boxs)==0:
@@ -96,25 +96,6 @@ class yolov5_ros(Node):
             bias +=10
         return np.mean(distance_list)
     
-    # The func that can let U know the distance
-    # def get_distance_box_type(self, org_img, box, depth_data):
-    #     distance_list = []
-    #     bias_x = 20
-    #     bias_y = 50
-    #     # The center-x of the bounding box
-    #     target_x = (box[0] + box[2])//2
-    #     # The center-y of the bounding box
-    #     target_y = (box[1] + box[3])//2
-    #     # Get the smaple point
-    #     for i in range(30):
-    #         rand_point_x = self.clamp(random.randint(target_x-bias_x, target_x+bias_x), box[0], box[2])
-    #         rand_point_y = self.clamp(random.randint(target_y-bias_y, target_y+bias_y), box[1], box[3])
-    #         # Let you know where the smaple point is.
-    #         cv2.circle(org_img, (rand_point_x, rand_point_y), 2, (3, 255, 65), -1)
-    #         # Add to the list
-    #         distance_list.append(depth_data[rand_point_y, rand_point_x])
-    #     return np.mean(distance_list)
-    
     def run_detection(self):
         # Configure depth and color streams
         pipeline = rs.pipeline()
@@ -140,7 +121,7 @@ class yolov5_ros(Node):
                 results = self.model(color_image)
                 boxs= results.pandas().xyxy[0].values
                 # Main detection
-                self.dectshow(color_image, boxs, depth_image)
+                self.dectshow( boxs, depth_image)
 
                 # Press esc or 'q' to close the image window
                 key = cv2.waitKey(1)
