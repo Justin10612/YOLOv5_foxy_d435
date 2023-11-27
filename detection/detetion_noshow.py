@@ -3,8 +3,6 @@ import numpy as np
 import cv2
 import torch
 import os
-import random
-import time
 
 import rclpy
 from rclpy.node import Node
