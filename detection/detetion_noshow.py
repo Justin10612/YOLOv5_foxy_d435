@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import torch
 import os
+import time
 
 import rclpy
 from rclpy.node import Node
@@ -26,6 +27,7 @@ class yolov5_ros(Node):
         # Select Model
         path_ = os.path.join(self.MODEL_PATH, self.MODEL_NAME)
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
+        # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s6')
         # Set Confidence
         self.model.conf = 0.5
 
@@ -43,15 +45,14 @@ class yolov5_ros(Node):
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Midan Filter
-            for i in range(5):
+            for i in range(3):
                 self.d_list.append(self.get_distance_x_type(box, depth_data))
             self.d_list.sort()
-            midan = self.d_list[2]
-            self.distance = (midan)/1000.0  # Get average distance in meters
+            self.distance = self.d_list[1]
             self.d_list = []
             # Update Target Pose
             pose_msg.x = (box[0] + box[2])//2  # x
-            pose_msg.y = round(self.distance, 3)  # depth meters
+            pose_msg.y = self.distance  # depth mili-meters
             pose_msg.z = 1.0    # Target Status
             # Update Target Status
             status_msg.data = True

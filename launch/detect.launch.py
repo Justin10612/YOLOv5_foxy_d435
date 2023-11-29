@@ -7,6 +7,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 def generate_launch_description():
     yolov5_ros = launch_ros.actions.Node(
         package="detection", executable="yolov5_ros_beta",
+        # package="detection", executable="yolov5_ros_alpha",
+
     )
 
     return launch.LaunchDescription([

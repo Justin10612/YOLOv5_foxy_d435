@@ -29,6 +29,7 @@ class yolov5_ros(Node):
         # Select Model
         path_ = os.path.join(self.MODEL_PATH, self.MODEL_NAME)
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
+        # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s6')
         # Set Confidence
         self.model.conf = 0.5
 
@@ -85,7 +86,7 @@ class yolov5_ros(Node):
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
         # Show Image
-        # cv2.imshow('dec_img', org_img)
+        cv2.imshow('dec_img', org_img)
 
     # Clamp function
     def clamp(self, n, smallest, largest):
