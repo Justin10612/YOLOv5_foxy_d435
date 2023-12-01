@@ -26,7 +26,7 @@ class yolov5_ros(Node):
         self.target_status_pub_ = self.create_publisher(Bool, 'target_status', 10)
         # Select Model
         path_ = os.path.join(self.MODEL_PATH, self.MODEL_NAME)
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_, force_reload=True)
         # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s6')
         # Set Confidence
         self.model.conf = 0.5
