@@ -109,31 +109,12 @@ class yolov5_ros(Node):
             y_plus = min(target_y+bias, y1-1)
             y_minus = max(target_y-bias, y0+1)
             # Let you know where the smaple point is.
-            # cv2.circle(org_img, (target_x, y_plus), 2, (255,255,255), -1)
+            cv2.circle(org_img, (target_x, y_plus), 2, (255,255,255), -1)
             distance_list.append(depth_data[y_plus, target_x])
             distance_list.append(depth_data[y_minus, target_x])
-            # cv2.circle(org_img, (target_x, y_minus), 2, (255,255,255), -1)
+            cv2.circle(org_img, (target_x, y_minus), 2, (255,255,255), -1)
             bias +=10
         return np.mean(distance_list)
-    
-    # The func that can let U know the distance
-    # def get_distance_box_type(self, org_img, box, depth_data):
-    #     distance_list = []
-    #     bias_x = 20
-    #     bias_y = 50
-    #     # The center-x of the bounding box
-    #     target_x = (box[0] + box[2])//2
-    #     # The center-y of the bounding box
-    #     target_y = (box[1] + box[3])//2
-    #     # Get the smaple point
-    #     for i in range(30):
-    #         rand_point_x = self.clamp(random.randint(target_x-bias_x, target_x+bias_x), box[0], box[2])
-    #         rand_point_y = self.clamp(random.randint(target_y-bias_y, target_y+bias_y), box[1], box[3])
-    #         # Let you know where the smaple point is.
-    #         cv2.circle(org_img, (rand_point_x, rand_point_y), 2, (3, 255, 65), -1)
-    #         # Add to the list
-    #         distance_list.append(depth_data[rand_point_y, rand_point_x])
-    #     return np.mean(distance_list)
     
     def run_detection(self):
         # Configure depth and color streams
