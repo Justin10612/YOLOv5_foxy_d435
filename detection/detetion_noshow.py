@@ -36,8 +36,12 @@ class yolov5_ros(Node):
         pose_msg = Vector3()
         status_msg = Bool()
         obs_msgs = Bool()
+        # Obstacle Function
         if depth_data[640][360]<=800:
             obs_msgs.data = true
+        else:
+            obs_msgs.data = false
+        obs_pub.publish(obs_msgs)
         # If no data input
         if len(boxs)==0:
             # Publish Target Pose
