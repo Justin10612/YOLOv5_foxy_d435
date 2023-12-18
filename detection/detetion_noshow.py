@@ -24,17 +24,21 @@ class yolov5_ros(Node):
         super().__init__('human_detector')
         # Publisher Initialize
         self.publisher_ = self.create_publisher(Vector3, 'human_pose', 10)
+        self.obs_pub_ = self.create_publisher(Bool, 'front_obs', 10)
         self.target_status_pub_ = self.create_publisher(Bool, 'target_status', 10)
         # Select Model
         path_ = os.path.join(self.MODEL_PATH, self.MODEL_NAME)
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=path_)
-        # self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s6')
         # Set Confidence
         self.model.conf = 0.5
 
     def dectshow(self, boxs, depth_data):
         pose_msg = Vector3()
         status_msg = Bool()
+        obs_msgs = Bool()
+        if depth_data[640][360]<=800:
+            obs_msgs.data = true
+        # If no data input
         if len(boxs)==0:
             # Publish Target Pose
             pose_msg.x = 0.0  # x
@@ -42,7 +46,6 @@ class yolov5_ros(Node):
             pose_msg.z = 0.0
             # Update Target Status
             status_msg.data = False
-            
         # Gvie Every Box Distance_Value
         for box in boxs:
             # Midan Filter
@@ -69,10 +72,6 @@ class yolov5_ros(Node):
         # Publish Target Pose
         self.publisher_.publish(pose_msg)
         self.target_status_pub_.publish(status_msg)
-
-    # Clamp function
-    def clamp(self, n, smallest, largest):
-        return int(max(smallest, min(n, largest)))
 
     # The func that can let U know the distance
     def get_distance_x_type(self, box, depth_data):
